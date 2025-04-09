@@ -1,21 +1,28 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 from reader import extract_text_from_pdf
 import PyPDF2
+import pyttsx3
 import os
 
 class PDFToAudioApp:
     def __init__(self, root):
         self.root = root
         self.root.title("PDF to Audiobook Converter")
-        self.root.geometry("500x300")
+        self.root.geometry("550x420")
 
         self.pdf_path = ""
         self.total_pages = 0
         self.start_page = tk.IntVar()
         self.end_page = tk.IntVar()
 
+        self.voices = []
+        self.voice_choice = tk.StringVar()
+        self.speech_rate = tk.IntVar(value=150)
+        self.volume = tk.DoubleVar(value=1.0)
+
         self.create_widgets()
+        self.load_voices()
 
     def create_widgets(self):
         self.label = tk.Label(self.root, text="Select a PDF file to begin:")
@@ -27,7 +34,7 @@ class PDFToAudioApp:
         self.info_label = tk.Label(self.root, text="", fg="blue")
         self.info_label.pack(pady=10)
 
-        # Page range input fields
+        # Page range input
         self.range_frame = tk.Frame(self.root)
         self.range_frame.pack(pady=10)
 
@@ -41,6 +48,36 @@ class PDFToAudioApp:
 
         self.validate_button = tk.Button(self.root, text="Validate Page Range", command=self.validate_range)
         self.validate_button.pack(pady=5)
+
+        # Voice selection
+        tk.Label(self.root, text="Select Voice:").pack(pady=(15, 0))
+        self.voice_dropdown = ttk.Combobox(self.root, textvariable=self.voice_choice, state="readonly", width=50)
+        self.voice_dropdown.pack()
+
+        # Speech rate slider
+        tk.Label(self.root, text="Speech Rate (100–300):").pack(pady=(15, 0))
+        self.rate_slider = tk.Scale(self.root, from_=100, to=300, orient="horizontal", variable=self.speech_rate)
+        self.rate_slider.pack()
+
+        # Volume slider
+        tk.Label(self.root, text="Volume (0.0 to 1.0):").pack(pady=(15, 0))
+        self.volume_slider = tk.Scale(self.root, from_=0.0, to=1.0, resolution=0.1,
+                                      orient="horizontal", variable=self.volume)
+        self.volume_slider.pack()
+
+    def load_voices(self):
+        engine = pyttsx3.init()
+        self.voices = engine.getProperty("voices")
+        voice_names = []
+
+        for v in self.voices:
+            lang = v.languages[0] if hasattr(v, 'languages') and v.languages else "Unknown"
+            voice_names.append(f"{v.name} ({lang})")
+
+        self.voice_dropdown["values"] = voice_names
+        if voice_names:
+            self.voice_dropdown.current(0)
+            self.voice_choice.set(voice_names[0])
 
     def browse_pdf(self):
         file_path = filedialog.askopenfilename(
@@ -73,6 +110,16 @@ class PDFToAudioApp:
             messagebox.showinfo("Success", f"Valid range: pages {start} to {end}")
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def get_voice_settings(self):
+        """Return selected voice, rate, and volume as a dictionary."""
+        selected_voice_name = self.voice_choice.get()
+        selected_voice_obj = next((v for v in self.voices if v.name in selected_voice_name), self.voices[0])
+        return {
+            "voice": selected_voice_obj.id,
+            "rate": self.speech_rate.get(),
+            "volume": self.volume.get()
+        }
 
 if __name__ == "__main__":
     root = tk.Tk()
