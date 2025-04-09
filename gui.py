@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from reader import extract_text_from_pdf
-from speaker import export_to_audio
+from speaker import speak_text, export_to_audio, export_to_mp3_with_gtts
 import PyPDF2
 import pyttsx3
 import threading
@@ -11,7 +11,7 @@ class PDFToAudioApp:
     def __init__(self, root):
         self.root = root
         self.root.title("PDF to Audiobook Converter")
-        self.root.geometry("550x550")
+        self.root.geometry("600x580")
 
         self.pdf_path = ""
         self.total_pages = 0
@@ -22,6 +22,8 @@ class PDFToAudioApp:
         self.voice_choice = tk.StringVar()
         self.speech_rate = tk.IntVar(value=150)
         self.volume = tk.DoubleVar(value=1.0)
+
+        self.export_mode = tk.StringVar(value="Offline (WAV)")
 
         self.engine = pyttsx3.init()
         self.speaking_thread = None
@@ -66,6 +68,12 @@ class PDFToAudioApp:
                                       orient="horizontal", variable=self.volume)
         self.volume_slider.pack()
 
+        tk.Label(self.root, text="Export Mode:").pack(pady=(15, 0))
+        self.export_mode_dropdown = ttk.Combobox(self.root, textvariable=self.export_mode, state="readonly", width=30)
+        self.export_mode_dropdown["values"] = ["Offline (WAV)", "Online (MP3)"]
+        self.export_mode_dropdown.current(0)
+        self.export_mode_dropdown.pack()
+
         # Buttons: Play, Stop, Export
         self.actions_frame = tk.Frame(self.root)
         self.actions_frame.pack(pady=20)
@@ -76,7 +84,7 @@ class PDFToAudioApp:
         self.stop_button = tk.Button(self.actions_frame, text="Stop Audio", command=self.stop_speaking, width=15)
         self.stop_button.grid(row=0, column=1, padx=10)
 
-        self.export_button = tk.Button(self.actions_frame, text="Export to .wav", command=self.export_audio, width=15)
+        self.export_button = tk.Button(self.actions_frame, text="Export", command=self.export_audio, width=15)
         self.export_button.grid(row=0, column=2, padx=10)
 
     def load_voices(self):
@@ -162,16 +170,26 @@ class PDFToAudioApp:
     def export_audio(self):
         try:
             text = extract_text_from_pdf(self.pdf_path, self.start_page.get(), self.end_page.get())
-            settings = self.get_voice_settings()
 
-            output_path = filedialog.asksaveasfilename(defaultextension=".wav",
-                                                       filetypes=[("WAV files", "*.wav")],
-                                                       title="Save Audio As")
-            if output_path:
-                export_to_audio(text, filename=output_path, settings=settings)
-                messagebox.showinfo("Export Complete", f"Audio saved to:\n{output_path}")
+            mode = self.export_mode.get()
+            if mode == "Online (MP3)":
+                output_path = filedialog.asksaveasfilename(defaultextension=".mp3",
+                                                           filetypes=[("MP3 files", "*.mp3")],
+                                                           title="Save MP3 As")
+                if output_path:
+                    export_to_mp3_with_gtts(text, filename=output_path)
+                    messagebox.showinfo("Export Complete", f"Audio saved to:\n{output_path}")
+            else:
+                settings = self.get_voice_settings()
+                output_path = filedialog.asksaveasfilename(defaultextension=".wav",
+                                                           filetypes=[("WAV files", "*.wav")],
+                                                           title="Save WAV As")
+                if output_path:
+                    export_to_audio(text, filename=output_path, settings=settings)
+                    messagebox.showinfo("Export Complete", f"Audio saved to:\n{output_path}")
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
 
 if __name__ == "__main__":
     root = tk.Tk()
