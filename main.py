@@ -1,6 +1,6 @@
 import os
 from reader import extract_text_from_pdf
-from speaker import speak_text, export_to_audio
+from speaker import speak_text, export_to_audio, get_voice_settings
 import PyPDF2
 
 def get_pdf_info(file_path):
@@ -33,15 +33,19 @@ def main():
         # Extract and process
         full_text = extract_text_from_pdf(file_path, start_page=start, end_page=end)
 
+        # Ask action
         choice = input("Do you want to (1) Listen or (2) Export to audio file? Enter 1 or 2: ")
 
+        # Get voice settings
+        settings = get_voice_settings()
+
         if choice == "1":
-            speak_text(full_text)
+            speak_text(full_text, settings=settings)
         elif choice == "2":
             output_name = input("Enter output filename (e.g. mybook.wav): ").strip()
             if not output_name.endswith(".wav"):
                 output_name += ".wav"
-            export_to_audio(full_text, filename=output_name)
+            export_to_audio(full_text, filename=output_name, settings=settings)
         else:
             print("❌ Invalid choice.")
 
