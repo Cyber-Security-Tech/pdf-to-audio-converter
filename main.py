@@ -1,15 +1,37 @@
+import os
 from reader import extract_text_from_pdf
 from speaker import speak_text, export_to_audio
+import PyPDF2
 
-PDF_PATH = "sample.pdf"
+def get_pdf_info(file_path):
+    """Returns total number of pages in a PDF."""
+    with open(file_path, "rb") as f:
+        reader = PyPDF2.PdfReader(f)
+        return len(reader.pages)
 
 def main():
     try:
-        print(f"📖 Reading PDF: {PDF_PATH}")
+        # Prompt for PDF file path
+        file_path = input("Enter full path to a PDF file: ").strip()
+
+        if not os.path.isfile(file_path):
+            raise ValueError("File does not exist.")
+        if not file_path.lower().endswith(".pdf"):
+            raise ValueError("File must be a PDF.")
+
+        # Show page count
+        total_pages = get_pdf_info(file_path)
+        print(f"✅ Loaded '{os.path.basename(file_path)}' with {total_pages} pages.")
+
+        # Ask for page range
         start = int(input("Enter start page (1-based): "))
         end = int(input("Enter end page: "))
 
-        full_text = extract_text_from_pdf(PDF_PATH, start_page=start, end_page=end)
+        if start < 1 or end < start or end > total_pages:
+            raise ValueError("Invalid page range.")
+
+        # Extract and process
+        full_text = extract_text_from_pdf(file_path, start_page=start, end_page=end)
 
         choice = input("Do you want to (1) Listen or (2) Export to audio file? Enter 1 or 2: ")
 
