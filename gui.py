@@ -11,7 +11,7 @@ class PDFToAudioApp:
     def __init__(self, root):
         self.root = root
         self.root.title("PDF to Audiobook Converter")
-        self.root.geometry("600x580")
+        self.root.geometry("600x620")
 
         self.pdf_path = ""
         self.total_pages = 0
@@ -24,6 +24,7 @@ class PDFToAudioApp:
         self.volume = tk.DoubleVar(value=1.0)
 
         self.export_mode = tk.StringVar(value="Offline (WAV)")
+        self.chapter_export = tk.BooleanVar(value=False)
 
         self.engine = pyttsx3.init()
         self.speaking_thread = None
@@ -73,6 +74,10 @@ class PDFToAudioApp:
         self.export_mode_dropdown["values"] = ["Offline (WAV)", "Online (MP3)"]
         self.export_mode_dropdown.current(0)
         self.export_mode_dropdown.pack()
+
+        self.chapter_checkbox = tk.Checkbutton(self.root, text="Export each page as a separate chapter",
+                                               variable=self.chapter_export)
+        self.chapter_checkbox.pack(pady=5)
 
         # Buttons: Play, Stop, Export
         self.actions_frame = tk.Frame(self.root)
@@ -169,24 +174,44 @@ class PDFToAudioApp:
 
     def export_audio(self):
         try:
-            text = extract_text_from_pdf(self.pdf_path, self.start_page.get(), self.end_page.get())
+            start = self.start_page.get()
+            end = self.end_page.get()
+            export_each = self.chapter_export.get()
+            export_mode = self.export_mode.get()
+            settings = self.get_voice_settings()
 
-            mode = self.export_mode.get()
-            if mode == "Online (MP3)":
-                output_path = filedialog.asksaveasfilename(defaultextension=".mp3",
-                                                           filetypes=[("MP3 files", "*.mp3")],
-                                                           title="Save MP3 As")
-                if output_path:
-                    export_to_mp3_with_gtts(text, filename=output_path)
-                    messagebox.showinfo("Export Complete", f"Audio saved to:\n{output_path}")
+            if export_each:
+                output_dir = filedialog.askdirectory(title="Select Folder to Save Chapters")
+                if not output_dir:
+                    return
+
+                for i in range(start, end + 1):
+                    text = extract_text_from_pdf(self.pdf_path, i, i)
+                    filename = os.path.join(output_dir, f"chapter_{i}.{'mp3' if 'MP3' in export_mode else 'wav'}")
+                    if "MP3" in export_mode:
+                        export_to_mp3_with_gtts(text, filename=filename)
+                    else:
+                        export_to_audio(text, filename=filename, settings=settings)
+
+                messagebox.showinfo("Export Complete", f"Chapters saved to:\n{output_dir}")
+
             else:
-                settings = self.get_voice_settings()
-                output_path = filedialog.asksaveasfilename(defaultextension=".wav",
-                                                           filetypes=[("WAV files", "*.wav")],
-                                                           title="Save WAV As")
-                if output_path:
-                    export_to_audio(text, filename=output_path, settings=settings)
-                    messagebox.showinfo("Export Complete", f"Audio saved to:\n{output_path}")
+                text = extract_text_from_pdf(self.pdf_path, start, end)
+                if "MP3" in export_mode:
+                    output_path = filedialog.asksaveasfilename(defaultextension=".mp3",
+                                                               filetypes=[("MP3 files", "*.mp3")],
+                                                               title="Save MP3 As")
+                    if output_path:
+                        export_to_mp3_with_gtts(text, filename=output_path)
+                        messagebox.showinfo("Export Complete", f"Audio saved to:\n{output_path}")
+                else:
+                    output_path = filedialog.asksaveasfilename(defaultextension=".wav",
+                                                               filetypes=[("WAV files", "*.wav")],
+                                                               title="Save WAV As")
+                    if output_path:
+                        export_to_audio(text, filename=output_path, settings=settings)
+                        messagebox.showinfo("Export Complete", f"Audio saved to:\n{output_path}")
+
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
