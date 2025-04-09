@@ -6,6 +6,7 @@ import PyPDF2
 import pyttsx3
 import threading
 import os
+import zipfile
 
 class PDFToAudioApp:
     def __init__(self, root):
@@ -185,15 +186,25 @@ class PDFToAudioApp:
                 if not output_dir:
                     return
 
+                filenames = []
                 for i in range(start, end + 1):
                     text = extract_text_from_pdf(self.pdf_path, i, i)
-                    filename = os.path.join(output_dir, f"chapter_{i}.{'mp3' if 'MP3' in export_mode else 'wav'}")
+                    ext = "mp3" if "MP3" in export_mode else "wav"
+                    filename = os.path.join(output_dir, f"chapter_{i}.{ext}")
+                    filenames.append(filename)
+
                     if "MP3" in export_mode:
                         export_to_mp3_with_gtts(text, filename=filename)
                     else:
                         export_to_audio(text, filename=filename, settings=settings)
 
-                messagebox.showinfo("Export Complete", f"Chapters saved to:\n{output_dir}")
+                # Zip all files
+                zip_path = os.path.join(output_dir, "chapters.zip")
+                with zipfile.ZipFile(zip_path, "w") as zipf:
+                    for file in filenames:
+                        zipf.write(file, arcname=os.path.basename(file))
+
+                messagebox.showinfo("Export Complete", f"Chapters saved and zipped:\n{zip_path}")
 
             else:
                 text = extract_text_from_pdf(self.pdf_path, start, end)
