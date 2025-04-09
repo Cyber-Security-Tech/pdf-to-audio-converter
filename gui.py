@@ -7,6 +7,9 @@ import pyttsx3
 import threading
 import os
 import zipfile
+import json
+
+SETTINGS_FILE = "settings.json"
 
 class PDFToAudioApp:
     def __init__(self, root):
@@ -32,6 +35,7 @@ class PDFToAudioApp:
 
         self.create_widgets()
         self.load_voices()
+        self.load_settings()
 
     def create_widgets(self):
         self.label = tk.Label(self.root, text="Select a PDF file to begin:")
@@ -106,6 +110,41 @@ class PDFToAudioApp:
             self.voice_dropdown.current(0)
             self.voice_choice.set(voice_names[0])
 
+    def load_settings(self):
+        if not os.path.exists(SETTINGS_FILE):
+            return
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                data = json.load(f)
+            self.voice_choice.set(data.get("voice", self.voice_choice.get()))
+            self.speech_rate.set(data.get("rate", 150))
+            self.volume.set(data.get("volume", 1.0))
+            self.export_mode.set(data.get("export_mode", "Offline (WAV)"))
+            self.chapter_export.set(data.get("chapter_export", False))
+            self.start_page.set(data.get("start_page", 1))
+            self.end_page.set(data.get("end_page", 1))
+            print("✅ Settings loaded.")
+        except Exception as e:
+            print("❌ Could not load settings:", e)
+
+    def save_settings(self):
+        data = {
+            "voice": self.voice_choice.get(),
+            "rate": self.speech_rate.get(),
+            "volume": self.volume.get(),
+            "export_mode": self.export_mode.get(),
+            "chapter_export": self.chapter_export.get(),
+            "start_page": self.start_page.get(),
+            "end_page": self.end_page.get()
+        }
+        try:
+            with open(SETTINGS_FILE, "w") as f:
+                json.dump(data, f, indent=4)
+            print("✅ Settings saved.")
+        except Exception as e:
+            messagebox.showerror("Settings Save Failed", f"Error: {e}")
+            print("❌ Could not save settings:", e)
+
     def browse_pdf(self):
         file_path = filedialog.askopenfilename(
             filetypes=[("PDF Files", "*.pdf")],
@@ -151,7 +190,6 @@ class PDFToAudioApp:
         if self.speaking_thread and self.speaking_thread.is_alive():
             messagebox.showwarning("Speaking", "Audio is already playing.")
             return
-
         self.speaking_thread = threading.Thread(target=self.speak_text, daemon=True)
         self.speaking_thread.start()
 
@@ -181,6 +219,8 @@ class PDFToAudioApp:
             export_mode = self.export_mode.get()
             settings = self.get_voice_settings()
 
+            self.save_settings()
+
             if export_each:
                 output_dir = filedialog.askdirectory(title="Select Folder to Save Chapters")
                 if not output_dir:
@@ -198,7 +238,6 @@ class PDFToAudioApp:
                     else:
                         export_to_audio(text, filename=filename, settings=settings)
 
-                # Zip all files
                 zip_path = os.path.join(output_dir, "chapters.zip")
                 with zipfile.ZipFile(zip_path, "w") as zipf:
                     for file in filenames:
