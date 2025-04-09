@@ -8,10 +8,12 @@ class PDFToAudioApp:
     def __init__(self, root):
         self.root = root
         self.root.title("PDF to Audiobook Converter")
-        self.root.geometry("500x250")
+        self.root.geometry("500x300")
 
         self.pdf_path = ""
         self.total_pages = 0
+        self.start_page = tk.IntVar()
+        self.end_page = tk.IntVar()
 
         self.create_widgets()
 
@@ -24,6 +26,21 @@ class PDFToAudioApp:
 
         self.info_label = tk.Label(self.root, text="", fg="blue")
         self.info_label.pack(pady=10)
+
+        # Page range input fields
+        self.range_frame = tk.Frame(self.root)
+        self.range_frame.pack(pady=10)
+
+        tk.Label(self.range_frame, text="Start Page:").grid(row=0, column=0, padx=5)
+        self.start_entry = tk.Entry(self.range_frame, textvariable=self.start_page, width=5)
+        self.start_entry.grid(row=0, column=1)
+
+        tk.Label(self.range_frame, text="End Page:").grid(row=0, column=2, padx=5)
+        self.end_entry = tk.Entry(self.range_frame, textvariable=self.end_page, width=5)
+        self.end_entry.grid(row=0, column=3)
+
+        self.validate_button = tk.Button(self.root, text="Validate Page Range", command=self.validate_range)
+        self.validate_button.pack(pady=5)
 
     def browse_pdf(self):
         file_path = filedialog.askopenfilename(
@@ -43,6 +60,19 @@ class PDFToAudioApp:
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to read PDF: {e}")
                 self.info_label.config(text="")
+
+    def validate_range(self):
+        try:
+            start = self.start_page.get()
+            end = self.end_page.get()
+
+            if not self.pdf_path:
+                raise ValueError("Please select a PDF first.")
+            if start < 1 or end < start or end > self.total_pages:
+                raise ValueError("Invalid page range.")
+            messagebox.showinfo("Success", f"Valid range: pages {start} to {end}")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
 if __name__ == "__main__":
     root = tk.Tk()
