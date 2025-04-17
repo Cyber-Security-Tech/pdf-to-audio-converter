@@ -21,7 +21,7 @@ Convert any PDF into realistic, chaptered audiobooks using this polished Python 
 
 ## 🎥 Demo
 
-https://github.com/Cyber-Security-Tech/pdf-to-audio-converter/raw/main/media/demo/demo.gif
+![Demo Walkthrough](media/demo/demo.gif)
 
 ---
 
