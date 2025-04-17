@@ -21,7 +21,7 @@ Convert any PDF into realistic, chaptered audiobooks using this polished Python 
 
 ## 🎥 Demo
 
-![Demo Walkthrough](media/demo/demo.mp4)
+![Demo Walkthrough](media/demo/demo.gif)
 
 ---
 
@@ -140,3 +140,4 @@ pdf_to_audio/
    ```bash
    python app/gui.py
    ```
+   
