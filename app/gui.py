@@ -1,3 +1,16 @@
+"""
+gui.py
+
+Graphical User Interface for the PDF to Audiobook Converter app using Tkinter.
+Allows users to:
+- Select a PDF and choose page ranges
+- Configure voice settings (rate, volume, voice)
+- Choose between offline (WAV) or online (MP3) export
+- Play audio or export it to file
+- Export each page as separate chapters and zip them
+- Save and load user preferences from a settings file
+"""
+
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from reader import extract_text_from_pdf
@@ -12,6 +25,10 @@ import json
 SETTINGS_FILE = "settings.json"
 
 class PDFToAudioApp:
+    """
+    Main GUI class for the application.
+    Handles all user interaction, input validation, audio playback, and export logic.
+    """
     def __init__(self, root):
         self.root = root
         self.root.title("PDF to Audiobook Converter")
@@ -26,7 +43,6 @@ class PDFToAudioApp:
         self.voice_choice = tk.StringVar()
         self.speech_rate = tk.IntVar(value=150)
         self.volume = tk.DoubleVar(value=1.0)
-
         self.export_mode = tk.StringVar(value="Offline (WAV)")
         self.chapter_export = tk.BooleanVar(value=False)
 
@@ -38,6 +54,9 @@ class PDFToAudioApp:
         self.load_settings()
 
     def create_widgets(self):
+        """
+        Initialize all widgets and layout.
+        """
         self.label = tk.Label(self.root, text="Select a PDF file to begin:")
         self.label.pack(pady=10)
 
@@ -77,7 +96,6 @@ class PDFToAudioApp:
         tk.Label(self.root, text="Export Mode:").pack(pady=(15, 0))
         self.export_mode_dropdown = ttk.Combobox(self.root, textvariable=self.export_mode, state="readonly", width=30)
         self.export_mode_dropdown["values"] = ["Offline (WAV)", "Online (MP3)"]
-        self.export_mode_dropdown.current(0)
         self.export_mode_dropdown.pack()
 
         self.chapter_checkbox = tk.Checkbutton(self.root, text="Export each page as a separate chapter",
@@ -98,6 +116,9 @@ class PDFToAudioApp:
         self.export_button.grid(row=0, column=2, padx=10)
 
     def load_voices(self):
+        """
+        Load available TTS voices and populate the dropdown.
+        """
         self.voices = self.engine.getProperty("voices")
         voice_names = []
 
@@ -111,6 +132,9 @@ class PDFToAudioApp:
             self.voice_choice.set(voice_names[0])
 
     def load_settings(self):
+        """
+        Load saved settings from a JSON file, if it exists.
+        """
         if not os.path.exists(SETTINGS_FILE):
             return
         try:
@@ -123,11 +147,14 @@ class PDFToAudioApp:
             self.chapter_export.set(data.get("chapter_export", False))
             self.start_page.set(data.get("start_page", 1))
             self.end_page.set(data.get("end_page", 1))
-            print("✅ Settings loaded.")
+            print("Settings loaded.")
         except Exception as e:
-            print("❌ Could not load settings:", e)
+            print("Failed to load settings:", e)
 
     def save_settings(self):
+        """
+        Save current settings to a JSON file.
+        """
         data = {
             "voice": self.voice_choice.get(),
             "rate": self.speech_rate.get(),
@@ -140,12 +167,14 @@ class PDFToAudioApp:
         try:
             with open(SETTINGS_FILE, "w") as f:
                 json.dump(data, f, indent=4)
-            print("✅ Settings saved.")
+            print("Settings saved.")
         except Exception as e:
             messagebox.showerror("Settings Save Failed", f"Error: {e}")
-            print("❌ Could not save settings:", e)
 
     def browse_pdf(self):
+        """
+        Prompt the user to select a PDF file and display its page count.
+        """
         file_path = filedialog.askopenfilename(
             filetypes=[("PDF Files", "*.pdf")],
             title="Select a PDF File"
@@ -158,13 +187,16 @@ class PDFToAudioApp:
                     self.pdf_path = file_path
                     file_name = os.path.basename(file_path)
                     self.info_label.config(
-                        text=f"✅ Loaded '{file_name}' ({self.total_pages} pages)"
+                        text=f"Loaded '{file_name}' ({self.total_pages} pages)"
                     )
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to read PDF: {e}")
                 self.info_label.config(text="")
 
     def validate_range(self):
+        """
+        Validates that the selected page range is within the PDF's limits.
+        """
         try:
             start = self.start_page.get()
             end = self.end_page.get()
@@ -178,6 +210,9 @@ class PDFToAudioApp:
             messagebox.showerror("Error", str(e))
 
     def get_voice_settings(self):
+        """
+        Returns the currently selected voice settings.
+        """
         selected_voice_name = self.voice_choice.get()
         selected_voice_obj = next((v for v in self.voices if v.name in selected_voice_name), self.voices[0])
         return {
@@ -187,6 +222,9 @@ class PDFToAudioApp:
         }
 
     def start_speaking_thread(self):
+        """
+        Start speaking in a separate thread to avoid UI freeze.
+        """
         if self.speaking_thread and self.speaking_thread.is_alive():
             messagebox.showwarning("Speaking", "Audio is already playing.")
             return
@@ -194,6 +232,9 @@ class PDFToAudioApp:
         self.speaking_thread.start()
 
     def speak_text(self):
+        """
+        Speak the extracted text using pyttsx3 with current settings.
+        """
         try:
             text = extract_text_from_pdf(self.pdf_path, self.start_page.get(), self.end_page.get())
             settings = self.get_voice_settings()
@@ -206,12 +247,19 @@ class PDFToAudioApp:
             messagebox.showerror("Error", str(e))
 
     def stop_speaking(self):
+        """
+        Stop the current speech immediately.
+        """
         try:
             self.engine.stop()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to stop audio: {e}")
 
     def export_audio(self):
+        """
+        Export audio either as one file or per page.
+        Supports offline (WAV) and online (MP3 using gTTS) export options.
+        """
         try:
             start = self.start_page.get()
             end = self.end_page.get()
@@ -222,6 +270,7 @@ class PDFToAudioApp:
             self.save_settings()
 
             if export_each:
+                # Export each page as a chapter
                 output_dir = filedialog.askdirectory(title="Select Folder to Save Chapters")
                 if not output_dir:
                     return
@@ -229,11 +278,11 @@ class PDFToAudioApp:
                 filenames = []
                 for i in range(start, end + 1):
                     text = extract_text_from_pdf(self.pdf_path, i, i)
-                    ext = "mp3" if "MP3" in export_mode else "wav"
-                    filename = os.path.join(output_dir, f"chapter_{i}.{ext}")
+                    file_format = "mp3" if "MP3" in export_mode else "wav"
+                    filename = os.path.join(output_dir, f"chapter_{i}.{file_format}")
                     filenames.append(filename)
 
-                    if "MP3" in export_mode:
+                    if file_format == "mp3":
                         export_to_mp3_with_gtts(text, filename=filename)
                     else:
                         export_to_audio(text, filename=filename, settings=settings)
@@ -246,6 +295,7 @@ class PDFToAudioApp:
                 messagebox.showinfo("Export Complete", f"Chapters saved and zipped:\n{zip_path}")
 
             else:
+                # Export as single file
                 text = extract_text_from_pdf(self.pdf_path, start, end)
                 if "MP3" in export_mode:
                     output_path = filedialog.asksaveasfilename(defaultextension=".mp3",
@@ -261,7 +311,6 @@ class PDFToAudioApp:
                     if output_path:
                         export_to_audio(text, filename=output_path, settings=settings)
                         messagebox.showinfo("Export Complete", f"Audio saved to:\n{output_path}")
-
         except Exception as e:
             messagebox.showerror("Error", str(e))
 

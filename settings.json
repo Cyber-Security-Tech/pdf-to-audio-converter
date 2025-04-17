@@ -1,9 +1,9 @@
 {
-    "voice": "Microsoft David Desktop - English (United States) (Unknown)",
+    "voice": "Microsoft Zira Desktop - English (United States) (Unknown)",
     "rate": 300,
-    "volume": 1.0,
-    "export_mode": "Offline (WAV)",
-    "chapter_export": false,
+    "volume": 0.5,
+    "export_mode": "Online (MP3)",
+    "chapter_export": true,
     "start_page": 1,
-    "end_page": 4
+    "end_page": 1
 }
