@@ -1,7 +1,7 @@
 {
     "voice": "Microsoft Zira Desktop - English (United States) (Unknown)",
     "rate": 300,
-    "volume": 0.5,
+    "volume": 1.0,
     "export_mode": "Online (MP3)",
     "chapter_export": true,
     "start_page": 1,
